@@ -1,47 +1,47 @@
-/****************************************************
- * BOT TELEGRAM – INSTITUTO M&R
- * PRODUCCIÓN HOSTINGER
- ****************************************************/
+/*****************************************************
+ * BOT TELEGRAM – Instituto de Estilismo y Barbería M&R
+ * Compatible con Hostinger (Shared Hosting)
+ *****************************************************/
 
-require('dotenv').config();
-const express = require('express');
-//const TelegramBot = require('node-telegram-bot-api');
-const db = require('./db');
+const fs = require('fs');
+const path = require('path');
 
-let ENV = {};
+/* ====================================================
+   1️⃣ MOSTRAR CONTEXTO (DEBUG HOSTINGER)
+==================================================== */
+console.log('📂 Directorio actual:', __dirname);
 
 try {
-  ENV = require('./env');
-  console.log('✅ Usando env.js');
+  console.log('📄 Archivos en el directorio:', fs.readdirSync(__dirname));
 } catch (e) {
+  console.error('❌ No se pudo listar el directorio', e);
+}
+
+/* ====================================================
+   2️⃣ CARGAR VARIABLES DE ENTORNO (env.js o process.env)
+==================================================== */
+let ENV = {};
+const envPath = path.join(__dirname, 'env.js');
+
+if (fs.existsSync(envPath)) {
+  console.log('✅ env.js encontrado');
+  ENV = require(envPath);
+} else {
+  console.log('⚠️ env.js NO encontrado, usando process.env');
   ENV = process.env;
-  console.log('ℹ️ Usando process.env');
 }
 
 if (!ENV.BOT_TOKEN) {
-  console.error('❌ BOT_TOKEN NO DEFINIDO');
-  process.exit(1);
-}
-
-const TelegramBot = require('node-telegram-bot-api');
-const bot = new TelegramBot(ENV.BOT_TOKEN, { polling: true });
-
-console.log('🤖 BOT TELEGRAM INICIADO');
-
-
-/* ==================================================
-   VALIDAR VARIABLES DE ENTORNO
-================================================== */
-if (!process.env.BOT_TOKEN) {
-  console.error('❌ ERROR: BOT_TOKEN no definido en variables de entorno');
+  console.error('❌ ERROR CRÍTICO: BOT_TOKEN no definido');
   process.exit(1);
 }
 
 console.log('✅ BOT_TOKEN cargado correctamente');
 
-/* ==================================================
-   EXPRESS (OBLIGATORIO PARA HOSTINGER)
-================================================== */
+/* ====================================================
+   3️⃣ EXPRESS (REQUERIDO POR HOSTINGER)
+==================================================== */
+const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -50,33 +50,39 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🌐 Servidor HTTP escuchando en puerto ${PORT}`);
+  console.log(`🌐 Servidor HTTP activo en puerto ${PORT}`);
 });
 
-/* ==================================================
-   TELEGRAM BOT
-================================================== */
+/* ====================================================
+   4️⃣ TELEGRAM BOT (POLLING)
+==================================================== */
+const TelegramBot = require('node-telegram-bot-api');
 
+const bot = new TelegramBot(ENV.BOT_TOKEN, {
+  polling: {
+    interval: 300,
+    autoStart: true
+  }
+});
 
-console.log('🤖 BOT TELEGRAM INICIADO (POLLING)');
+console.log('🤖 Bot de Telegram iniciado correctamente');
 
-/* ==================================================
-   HANDLERS
-================================================== */
+/* ====================================================
+   5️⃣ HANDLERS
+==================================================== */
+const db = require('./db');
+
 const adminHandler = require('./handlers/admin')(bot);
 require('./handlers/alumno')(bot);
 require('./handlers/informes')(bot);
 
-/* ==================================================
-   LOGIN
-================================================== */
+/* ====================================================
+   6️⃣ LOGIN / START
+==================================================== */
 const estadoLogin = {};
 
-/* ==================================================
-   /START
-================================================== */
 bot.onText(/\/start/, async (msg) => {
-  console.log(`📩 /start recibido de ${msg.from.id}`);
+  console.log('📩 /start recibido de', msg.from.id);
 
   await bot.sendMessage(
     msg.chat.id,
@@ -94,9 +100,9 @@ bot.onText(/\/start/, async (msg) => {
   );
 });
 
-/* ==================================================
-   CALLBACKS
-================================================== */
+/* ====================================================
+   7️⃣ CALLBACKS
+==================================================== */
 bot.on('callback_query', async (q) => {
   const chatId = q.message.chat.id;
   const tgId = q.from.id;
@@ -117,9 +123,9 @@ bot.on('callback_query', async (q) => {
   }
 });
 
-/* ==================================================
-   CONTACTO
-================================================== */
+/* ====================================================
+   8️⃣ CONTACTO (LOGIN)
+==================================================== */
 bot.on('contact', async (msg) => {
   const tgId = msg.from.id;
   const chatId = msg.chat.id;
@@ -166,22 +172,22 @@ bot.on('contact', async (msg) => {
       reply_markup: { remove_keyboard: true }
     });
 
-    if (tipo === 'ADMIN' || tipo === 'SUPER_ADMIN') {
+    if (tipo === 'ADMIN') {
       await adminHandler.showAdminMenu(bot, chatId, tgId);
     } else {
       bot.emit('alumno_menu', msg);
     }
 
   } catch (err) {
-    console.error('❌ Error en login:', err);
+    console.error('❌ Error login:', err);
     delete estadoLogin[tgId];
     await bot.sendMessage(chatId, '❌ Error al validar acceso');
   }
 });
 
-/* ==================================================
-   ERRORES DE POLLING
-================================================== */
+/* ====================================================
+   9️⃣ ERRORES DE TELEGRAM
+==================================================== */
 bot.on('polling_error', (err) => {
-  console.error('🚨 Polling error:', err.message);
+  console.error('❌ Polling error:', err.message);
 });
