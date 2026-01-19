@@ -1,28 +1,31 @@
 require('dotenv').config();
 const express = require('express');
-const bodyParser = require('body-parser');
-const bot = require('./bot');
+const TelegramBot = require('node-telegram-bot-api');
 const db = require('./db');
 
+// ===== EXPRESS (OBLIGATORIO PARA HOSTINGER) =====
 const app = express();
-app.use(bodyParser.json());
-
 const PORT = process.env.PORT || 3000;
 
-// ================= HANDLERS =================
+app.get('/', (req, res) => {
+  res.send('🤖 Bot Telegram Instituto M&R activo');
+});
+
+app.listen(PORT, () => {
+  console.log(`Servidor HTTP escuchando en puerto ${PORT}`);
+});
+
+// ===== TELEGRAM BOT =====
+const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+
+// ===== IMPORTAR HANDLERS =====
 const adminHandler = require('./handlers/admin')(bot);
 require('./handlers/alumno')(bot);
 require('./handlers/informes')(bot);
 
+// ===== LOGIN =====
 const estadoLogin = {};
 
-// ============ TELEGRAM WEBHOOK ============
-app.post(`/bot${process.env.BOT_TOKEN}`, (req, res) => {
-  bot.processUpdate(req.body);
-  res.sendStatus(200);
-});
-
-// ============ START ============
 bot.onText(/\/start/, async (msg) => {
   await bot.sendMessage(
     msg.chat.id,
@@ -40,11 +43,9 @@ bot.onText(/\/start/, async (msg) => {
   );
 });
 
-// ============ CALLBACK ============
 bot.on('callback_query', async (q) => {
   const chatId = q.message.chat.id;
   const tgId = q.from.id;
-
   await bot.answerCallbackQuery(q.id);
 
   if (q.data === 'login_admin') estadoLogin[tgId] = 'ADMIN';
@@ -61,7 +62,6 @@ bot.on('callback_query', async (q) => {
   }
 });
 
-// ============ CONTACT ============
 bot.on('contact', async (msg) => {
   const tgId = msg.from.id;
   const chatId = msg.chat.id;
@@ -79,6 +79,20 @@ bot.on('contact', async (msg) => {
     if (!usuario) {
       delete estadoLogin[tgId];
       return bot.sendMessage(chatId, '❌ Número no registrado.', {
+        reply_markup: { remove_keyboard: true }
+      });
+    }
+
+    if (tipo === 'ADMIN' && !['ADMIN', 'SUPER_ADMIN'].includes(usuario.rol)) {
+      delete estadoLogin[tgId];
+      return bot.sendMessage(chatId, '❌ Sin permisos.', {
+        reply_markup: { remove_keyboard: true }
+      });
+    }
+
+    if (tipo === 'ALUMNO' && usuario.rol !== 'ALUMNO') {
+      delete estadoLogin[tgId];
+      return bot.sendMessage(chatId, '❌ Sin permisos.', {
         reply_markup: { remove_keyboard: true }
       });
     }
@@ -103,15 +117,6 @@ bot.on('contact', async (msg) => {
   } catch (err) {
     console.error(err);
     delete estadoLogin[tgId];
-    bot.sendMessage(chatId, '❌ Error de servidor');
+    await bot.sendMessage(chatId, '❌ Error al validar acceso');
   }
-});
-
-// ============ SERVER ============
-app.listen(PORT, async () => {
-  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-
-  const webhookURL = `${process.env.APP_URL}/bot${process.env.BOT_TOKEN}`;
-  await bot.setWebHook(webhookURL);
-  console.log('🤖 Webhook configurado');
 });
