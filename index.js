@@ -23,7 +23,7 @@ app.listen(PORT, () => {
 // ⚠️ TOKEN DIRECTO (NO seguro, pero funcional)
 const BOT_TOKEN = '8137593924:AAE9Jhe_3MbB5Q2Nj9kXznYZcqy2Ua0zeoQ';
 
-if (!BOT_TOKEN || BOT_TOKEN.includes('8137593924:AAE9Jhe_3MbB5Q2Nj9kXznYZcqy2Ua0zeoQ')) {
+if (!BOT_TOKEN || BOT_TOKEN.includes('PEGA_AQUI')) {
   console.error('❌ BOT_TOKEN inválido');
   process.exit(1);
 }
