@@ -25,8 +25,10 @@ require('./handlers/informes')(bot);
 
 // ===== LOGIN =====
 const estadoLogin = {};
+console.log('🤖 BOT INICIADO CORRECTAMENTE');
 
 bot.onText(/\/start/, async (msg) => {
+      console.log('📩 /start recibido', msg.chat.id);
   await bot.sendMessage(
     msg.chat.id,
     '🤖 *Bienvenido al SYS-BOT del Instituto de Estilismo y Barbería M&R*\n\nSelecciona una opción:',
