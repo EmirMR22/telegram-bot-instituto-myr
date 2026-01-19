@@ -4,6 +4,8 @@ require('dotenv').config();
    TELEGRAM BOT (PRIMERO SIEMPRE)
 ================================ */
 const TelegramBot = require('node-telegram-bot-api');
+console.log('TOKEN:', process.env.BOT_TOKEN ? 'OK' : 'NO TOKEN');
+
 const bot = new TelegramBot(process.env.BOT_TOKEN, {
   polling: true
 });
