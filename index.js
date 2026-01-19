@@ -70,7 +70,7 @@ console.log('🤖 Bot de Telegram iniciado correctamente');
 /* ====================================================
    5️⃣ HANDLERS
 ==================================================== */
-const db = require('./db');
+//const db = require('./db');
 
 const adminHandler = require('./handlers/admin')(bot);
 require('./handlers/alumno')(bot);
