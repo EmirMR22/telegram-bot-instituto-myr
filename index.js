@@ -5,7 +5,7 @@
 
 require('dotenv').config();
 const express = require('express');
-const TelegramBot = require('node-telegram-bot-api');
+//const TelegramBot = require('node-telegram-bot-api');
 const db = require('./db');
 
 let ENV = {};
@@ -56,12 +56,7 @@ app.listen(PORT, () => {
 /* ==================================================
    TELEGRAM BOT
 ================================================== */
-/*const bot = new TelegramBot(process.env.BOT_TOKEN, {
-  polling: {
-    interval: 300,
-    autoStart: true
-  }
-});*/
+
 
 console.log('🤖 BOT TELEGRAM INICIADO (POLLING)');
 
