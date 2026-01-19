@@ -1,20 +1,26 @@
+/****************************************************
+ * BOT TELEGRAM – INSTITUTO M&R
+ * PRODUCCIÓN HOSTINGER
+ ****************************************************/
+
 require('dotenv').config();
-
-/* ===============================
-   TELEGRAM BOT (PRIMERO SIEMPRE)
-================================ */
-const TelegramBot = require('node-telegram-bot-api');
-console.log('TOKEN:', process.env.BOT_TOKEN ? 'OK' : 'NO TOKEN');
-const bot = new TelegramBot(process.env.BOT_TOKEN, {
-  polling: true
-});
-
-console.log('🤖 BOT INICIADO CORRECTAMENTE');
-
-/* ===============================
-   EXPRESS (OBLIGATORIO HOSTINGER)
-================================ */
 const express = require('express');
+const TelegramBot = require('node-telegram-bot-api');
+const db = require('./db');
+
+/* ==================================================
+   VALIDAR VARIABLES DE ENTORNO
+================================================== */
+if (!process.env.BOT_TOKEN) {
+  console.error('❌ ERROR: BOT_TOKEN no definido en variables de entorno');
+  process.exit(1);
+}
+
+console.log('✅ BOT_TOKEN cargado correctamente');
+
+/* ==================================================
+   EXPRESS (OBLIGATORIO PARA HOSTINGER)
+================================================== */
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -26,32 +32,38 @@ app.listen(PORT, () => {
   console.log(`🌐 Servidor HTTP escuchando en puerto ${PORT}`);
 });
 
-/* ===============================
-   BASE DE DATOS
-================================ */
-const db = require('./db');
+/* ==================================================
+   TELEGRAM BOT
+================================================== */
+const bot = new TelegramBot(process.env.BOT_TOKEN, {
+  polling: {
+    interval: 300,
+    autoStart: true
+  }
+});
 
-/* ===============================
+console.log('🤖 BOT TELEGRAM INICIADO (POLLING)');
+
+/* ==================================================
    HANDLERS
-================================ */
+================================================== */
 const adminHandler = require('./handlers/admin')(bot);
 require('./handlers/alumno')(bot);
 require('./handlers/informes')(bot);
 
-/* ===============================
-   LOGIN / ESTADOS
-================================ */
+/* ==================================================
+   LOGIN
+================================================== */
 const estadoLogin = {};
 
-/* ===============================
+/* ==================================================
    /START
-================================ */
+================================================== */
 bot.onText(/\/start/, async (msg) => {
-  const chatId = msg.chat.id;
-  console.log('📩 /start recibido:', chatId);
+  console.log(`📩 /start recibido de ${msg.from.id}`);
 
   await bot.sendMessage(
-    chatId,
+    msg.chat.id,
     '🤖 *Bienvenido al SYS-BOT del Instituto de Estilismo y Barbería M&R*\n\nSelecciona una opción:',
     {
       parse_mode: 'Markdown',
@@ -66,9 +78,9 @@ bot.onText(/\/start/, async (msg) => {
   );
 });
 
-/* ===============================
+/* ==================================================
    CALLBACKS
-================================ */
+================================================== */
 bot.on('callback_query', async (q) => {
   const chatId = q.message.chat.id;
   const tgId = q.from.id;
@@ -89,9 +101,9 @@ bot.on('callback_query', async (q) => {
   }
 });
 
-/* ===============================
+/* ==================================================
    CONTACTO
-================================ */
+================================================== */
 bot.on('contact', async (msg) => {
   const tgId = msg.from.id;
   const chatId = msg.chat.id;
@@ -138,15 +150,22 @@ bot.on('contact', async (msg) => {
       reply_markup: { remove_keyboard: true }
     });
 
-    if (tipo === 'ADMIN') {
+    if (tipo === 'ADMIN' || tipo === 'SUPER_ADMIN') {
       await adminHandler.showAdminMenu(bot, chatId, tgId);
     } else {
       bot.emit('alumno_menu', msg);
     }
 
   } catch (err) {
-    console.error('❌ Error login:', err);
+    console.error('❌ Error en login:', err);
     delete estadoLogin[tgId];
     await bot.sendMessage(chatId, '❌ Error al validar acceso');
   }
+});
+
+/* ==================================================
+   ERRORES DE POLLING
+================================================== */
+bot.on('polling_error', (err) => {
+  console.error('🚨 Polling error:', err.message);
 });
