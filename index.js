@@ -8,6 +8,27 @@ const express = require('express');
 const TelegramBot = require('node-telegram-bot-api');
 const db = require('./db');
 
+let ENV = {};
+
+try {
+  ENV = require('./env');
+  console.log('✅ Usando env.js');
+} catch (e) {
+  ENV = process.env;
+  console.log('ℹ️ Usando process.env');
+}
+
+if (!ENV.BOT_TOKEN) {
+  console.error('❌ BOT_TOKEN NO DEFINIDO');
+  process.exit(1);
+}
+
+const TelegramBot = require('node-telegram-bot-api');
+const bot = new TelegramBot(ENV.BOT_TOKEN, { polling: true });
+
+console.log('🤖 BOT TELEGRAM INICIADO');
+
+
 /* ==================================================
    VALIDAR VARIABLES DE ENTORNO
 ================================================== */
@@ -35,12 +56,12 @@ app.listen(PORT, () => {
 /* ==================================================
    TELEGRAM BOT
 ================================================== */
-const bot = new TelegramBot(process.env.BOT_TOKEN, {
+/*const bot = new TelegramBot(process.env.BOT_TOKEN, {
   polling: {
     interval: 300,
     autoStart: true
   }
-});
+});*/
 
 console.log('🤖 BOT TELEGRAM INICIADO (POLLING)');
 
