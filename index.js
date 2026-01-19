@@ -1,9 +1,19 @@
 require('dotenv').config();
-const express = require('express');
-const TelegramBot = require('node-telegram-bot-api');
-const db = require('./db');
 
-// ===== EXPRESS (OBLIGATORIO PARA HOSTINGER) =====
+/* ===============================
+   TELEGRAM BOT (PRIMERO SIEMPRE)
+================================ */
+const TelegramBot = require('node-telegram-bot-api');
+const bot = new TelegramBot(process.env.BOT_TOKEN, {
+  polling: true
+});
+
+console.log('🤖 BOT INICIADO CORRECTAMENTE');
+
+/* ===============================
+   EXPRESS (OBLIGATORIO HOSTINGER)
+================================ */
+const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -12,25 +22,35 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor HTTP escuchando en puerto ${PORT}`);
+  console.log(`🌐 Servidor HTTP escuchando en puerto ${PORT}`);
 });
 
-// ===== TELEGRAM BOT =====
-const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+/* ===============================
+   BASE DE DATOS
+================================ */
+const db = require('./db');
 
-// ===== IMPORTAR HANDLERS =====
+/* ===============================
+   HANDLERS
+================================ */
 const adminHandler = require('./handlers/admin')(bot);
 require('./handlers/alumno')(bot);
 require('./handlers/informes')(bot);
 
-// ===== LOGIN =====
+/* ===============================
+   LOGIN / ESTADOS
+================================ */
 const estadoLogin = {};
-console.log('🤖 BOT INICIADO CORRECTAMENTE');
 
+/* ===============================
+   /START
+================================ */
 bot.onText(/\/start/, async (msg) => {
-      console.log('📩 /start recibido', msg.chat.id);
+  const chatId = msg.chat.id;
+  console.log('📩 /start recibido:', chatId);
+
   await bot.sendMessage(
-    msg.chat.id,
+    chatId,
     '🤖 *Bienvenido al SYS-BOT del Instituto de Estilismo y Barbería M&R*\n\nSelecciona una opción:',
     {
       parse_mode: 'Markdown',
@@ -45,9 +65,13 @@ bot.onText(/\/start/, async (msg) => {
   );
 });
 
+/* ===============================
+   CALLBACKS
+================================ */
 bot.on('callback_query', async (q) => {
   const chatId = q.message.chat.id;
   const tgId = q.from.id;
+
   await bot.answerCallbackQuery(q.id);
 
   if (q.data === 'login_admin') estadoLogin[tgId] = 'ADMIN';
@@ -64,6 +88,9 @@ bot.on('callback_query', async (q) => {
   }
 });
 
+/* ===============================
+   CONTACTO
+================================ */
 bot.on('contact', async (msg) => {
   const tgId = msg.from.id;
   const chatId = msg.chat.id;
@@ -117,7 +144,7 @@ bot.on('contact', async (msg) => {
     }
 
   } catch (err) {
-    console.error(err);
+    console.error('❌ Error login:', err);
     delete estadoLogin[tgId];
     await bot.sendMessage(chatId, '❌ Error al validar acceso');
   }
